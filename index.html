@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>πθ — PiTheta AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #020204;
+    --fg: #f1f0ed;
+    --cyan: #00e5ff;
+    --violet: #8b5cf6;
+    --mint: #34d399;
+  }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #shader {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* ═══ NAV ═══ */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 3rem;
+    backdrop-filter: blur(30px) saturate(1.8);
+    background: rgba(2,2,4,0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    opacity: 0;
+    animation: navIn 0.7s ease-out 0.4s forwards;
+  }
+  @keyframes navIn {
+    from { opacity: 0; transform: translateY(-100%); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    text-decoration: none;
+    color: var(--fg);
+  }
+  .nav-symbol {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .nav-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    text-decoration: none;
+    transition: color 0.3s;
+    position: relative;
+  }
+  .nav-links a:hover { color: var(--cyan); }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0;
+    width: 0; height: 1px;
+    background: var(--cyan);
+    transition: width 0.3s;
+  }
+  .nav-links a:hover::after { width: 100%; }
+
+  .nav-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .nav-status .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 10px rgba(52,211,153,0.6);
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+  @keyframes statusPulse {
+    0%,100% { opacity:1; } 50% { opacity:0.3; }
+  }
+  .nav-status span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.2);
+    text-transform: uppercase;
+  }
+
+  /* ═══ HERO ═══ */
+  .hero {
+    position: relative;
+    z-index: 5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 8rem 2rem 4rem;
+  }
+
+  .policy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 100px;
+    padding: 0.5rem 1.5rem;
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(20px);
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease-out 1s forwards;
+  }
+  .policy-badge .math {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .policy-badge .sep {
+    width: 1px;
+    height: 14px;
+    background: rgba(255,255,255,0.1);
+  }
+  .policy-badge .label {
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .hero-title {
+    font-weight: 900;
+    font-size: clamp(5rem, 14vw, 13rem);
+    line-height: 0.85;
+    letter-spacing: -0.06em;
+    margin-bottom: 0.6rem;
+    position: relative;
+  }
+
+  .title-row {
+    display: block;
+    opacity: 0;
+    animation: titleSlide 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .title-row:nth-child(1) { animation-delay: 1.2s; }
+  .title-row:nth-child(2) { animation-delay: 1.35s; }
+
+  @keyframes titleSlide {
+    from { opacity: 0; transform: translateY(60px) skewY(3deg); }
+    to { opacity: 1; transform: translateY(0) skewY(0); }
+  }
+
+  .title-row.top { color: var(--fg); }
+
+  .title-row.bottom {
+    background: linear-gradient(90deg, var(--cyan), var(--violet), var(--mint));
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: titleSlide 1s cubic-bezier(0.16, 1, 0.3, 1) 1.35s forwards,
+               shimmer 8s ease-in-out infinite 2.5s;
+  }
+  @keyframes shimmer {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .hero-domain {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.12);
+    letter-spacing: 0.3em;
+    text-transform: lowercase;
+    margin-bottom: 2.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease-out 1.8s forwards;
+  }
+
+  .hero-sub {
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    font-weight: 300;
+    color: rgba(255,255,255,0.4);
+    max-width: 520px;
+    line-height: 1.8;
+    margin-bottom: 3.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease-out 2s forwards;
+  }
+  .hero-sub strong {
+    font-weight: 500;
+    color: rgba(255,255,255,0.75);
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    opacity: 0;
+    animation: fadeUp 0.8s ease-out 2.3s forwards;
+  }
+
+  .btn-primary {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem 2.5rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #000;
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    border: none;
+    border-radius: 60px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+    z-index: 1;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 63px;
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    filter: blur(18px);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.4s;
+  }
+  .btn-primary:hover {
+    transform: translateY(-3px) scale(1.04);
+  }
+  .btn-primary:hover::before { opacity: 0.5; }
+  .btn-primary .arrow {
+    display: inline-block;
+    transition: transform 0.3s;
+  }
+  .btn-primary:hover .arrow { transform: translateX(4px); }
+
+  .btn-outline {
+    padding: 1rem 2.5rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 60px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.4s;
+    backdrop-filter: blur(15px);
+  }
+  .btn-outline:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0,229,255,0.04);
+    transform: translateY(-3px);
+  }
+
+  /* ═══ TICKER ═══ */
+  .ticker-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    padding: 0.7rem 0;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    background: rgba(2,2,4,0.6);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp 0.6s ease-out 2.8s forwards;
+  }
+  .ticker-track {
+    display: flex;
+    gap: 3rem;
+    width: max-content;
+    animation: scrollTicker 40s linear infinite;
+  }
+  @keyframes scrollTicker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .ticker-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.15);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .ticker-item .ti-dot {
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--cyan);
+    opacity: 0.4;
+  }
+
+  /* ═══ FLOATING CARDS ═══ */
+  .float-card {
+    position: absolute;
+    z-index: 10;
+    padding: 1rem 1.4rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(25px);
+    opacity: 0;
+    animation: cardIn 1s ease-out forwards;
+  }
+  .float-card.left {
+    left: 6%;
+    bottom: 25%;
+    animation-delay: 2.6s;
+  }
+  .float-card.right {
+    right: 6%;
+    top: 30%;
+    animation-delay: 2.9s;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .float-card .fc-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    margin-bottom: 0.5rem;
+  }
+  .float-card .fc-value {
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .float-card .fc-sub {
+    font-size: 0.7rem;
+    font-weight: 300;
+    color: rgba(255,255,255,0.2);
+    margin-top: 0.2rem;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(25px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { display: none; }
+    .float-card { display: none; }
+    .hero { padding: 6rem 1.5rem 4rem; }
+    .btn-group { flex-direction: column; width: 100%; }
+    .btn-primary, .btn-outline { width: 100%; justify-content: center; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="shader"></canvas>
+
+<nav>
+  <a class="nav-brand" href="#">
+    <span class="nav-symbol">π<sub style="font-size:0.7em">θ</sub></span>
+    <span class="nav-name">PiTheta</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#research">Research</a></li>
+    <li><a href="#events">Events</a></li>
+    <li><a href="#join">Join</a></li>
+  </ul>
+  <div class="nav-status">
+    <div class="dot"></div>
+    <span>Silicon Valley, CA</span>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1 class="hero-title">
+    <span class="title-row top">PiTheta</span>
+    <span class="title-row bottom">AI</span>
+  </h1>
+
+  <p class="hero-domain">pithea.ai</p>
+
+  <p class="hero-sub">
+    <strong>Agentic reasoning & tool use.</strong>
+    Building the next generation of autonomous intelligent systems
+    — from policy gradients to real-world deployment.
+  </p>
+
+  <div class="btn-group">
+    <a href="#join" class="btn-primary">
+      Join Us <span class="arrow">→</span>
+    </a>
+    <a href="#about" class="btn-outline">Learn More</a>
+  </div>
+
+  <div class="float-card left">
+    <div class="fc-label">Focus Area</div>
+    <div class="fc-value">RL</div>
+    <div class="fc-sub">Agentic Reasoning</div>
+  </div>
+  <div class="float-card right">
+    <div class="fc-label">Est.</div>
+    <div class="fc-value">2026</div>
+    <div class="fc-sub">Agentic AI</div>
+  </div>
+</section>
+
+<div class="ticker-bar">
+  <div class="ticker-track">
+    <span class="ticker-item"><span class="ti-dot"></span>Reinforcement Learning</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Tool Use</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Agentic Systems</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Policy Gradients</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Autonomous Reasoning</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Multi-Agent Architectures</span>
+    <span class="ticker-item"><span class="ti-dot"></span>RLHF</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Reward Modeling</span>
+    <span class="ticker-item"><span class="ti-dot"></span>LLM Agents</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Chain of Thought</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Verification Rewards</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Monte Carlo Tree Search</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Reinforcement Learning</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Tool Use</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Agentic Systems</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Policy Gradients</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Autonomous Reasoning</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Multi-Agent Architectures</span>
+    <span class="ticker-item"><span class="ti-dot"></span>RLHF</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Reward Modeling</span>
+    <span class="ticker-item"><span class="ti-dot"></span>LLM Agents</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Chain of Thought</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Verification Rewards</span>
+    <span class="ticker-item"><span class="ti-dot"></span>Monte Carlo Tree Search</span>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// 3D LOSS LANDSCAPE SHADER
+// Raymarched heightfield terrain with contour lines,
+// gradient descent trajectory, and glowing minima
+// ═══════════════════════════════════════════════════
+const canvas = document.getElementById('shader');
+const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+function resize() {
+  const dpr = Math.min(devicePixelRatio, 1.5);
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', resize);
+resize();
+
+if (gl) {
+  const vsSource = `
+    attribute vec2 aPos;
+    void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
+  `;
+
+  const fsSource = `
+    precision highp float;
+    uniform float uTime;
+    uniform vec2 uRes;
+    uniform vec2 uMouse;
+
+    #define MAX_STEPS 80
+    #define MAX_DIST 50.0
+    #define SURF_DIST 0.01
+    #define PI 3.14159265
+
+    // ── Noise ──
+    vec3 mod289(vec3 x) { return x - floor(x*(1.0/289.0))*289.0; }
+    vec2 mod289(vec2 x) { return x - floor(x*(1.0/289.0))*289.0; }
+    vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+    float snoise(vec2 v) {
+      const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                          -0.577350269189626, 0.024390243902439);
+      vec2 i = floor(v + dot(v, C.yy));
+      vec2 x0 = v - i + dot(i, C.xx);
+      vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+      vec4 x12 = x0.xyxy + C.xxzz;
+      x12.xy -= i1;
+      i = mod289(i);
+      vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+      vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+      m = m*m; m = m*m;
+      vec3 x = 2.0 * fract(p * C.www) - 1.0;
+      vec3 h = abs(x) - 0.5;
+      vec3 ox = floor(x + 0.5);
+      vec3 a0 = x - ox;
+      m *= 1.79284291400159 - 0.85373472095314*(a0*a0+h*h);
+      vec3 g;
+      g.x = a0.x*x0.x + h.x*x0.y;
+      g.yz = a0.yz*x12.xz + h.yz*x12.yw;
+      return 130.0 * dot(m, g);
+    }
+
+    // ── Loss landscape height function ──
+    // Multiple local minima, saddle points, ridges
+    float landscape(vec2 p) {
+      float t = uTime * 0.04;
+
+      // Base bowl shape
+      float h = 0.15 * (p.x*p.x + p.y*p.y);
+
+      // Local minima — Gaussian wells
+      h -= 0.8 * exp(-2.5 * dot(p - vec2(1.2, 0.8), p - vec2(1.2, 0.8)));
+      h -= 1.1 * exp(-3.0 * dot(p - vec2(-0.5, -0.3), p - vec2(-0.5, -0.3))); // global min
+      h -= 0.5 * exp(-2.0 * dot(p - vec2(-1.5, 1.2), p - vec2(-1.5, 1.2)));
+      h -= 0.6 * exp(-2.8 * dot(p - vec2(0.3, -1.5), p - vec2(0.3, -1.5)));
+
+      // Saddle points / ridges
+      h += 0.3 * exp(-1.5 * dot(p - vec2(0.4, 0.5), p - vec2(0.4, 0.5)))
+           * sin(3.0 * p.x) * 0.5;
+
+      // High-frequency noise for texture
+      h += 0.06 * snoise(p * 3.0 + t);
+      h += 0.03 * snoise(p * 6.0 - t * 0.5);
+
+      // Slow morphing
+      h += 0.1 * sin(t) * exp(-1.0 * dot(p, p));
+
+      return h;
+    }
+
+    // ── SDF: terrain as heightfield ──
+    float mapTerrain(vec3 pos) {
+      return pos.y - landscape(pos.xz);
+    }
+
+    // ── Raymarching ──
+    float raymarch(vec3 ro, vec3 rd) {
+      float t = 0.0;
+      for (int i = 0; i < MAX_STEPS; i++) {
+        vec3 p = ro + rd * t;
+        float d = mapTerrain(p);
+
+        // Adaptive step for heightfields
+        float step = max(d * 0.5, 0.02);
+        t += step;
+
+        if (abs(d) < SURF_DIST || t > MAX_DIST) break;
+      }
+      return t;
+    }
+
+    // ── Normal via central differences ──
+    vec3 getNormal(vec3 p) {
+      float e = 0.02;
+      float h = landscape(p.xz);
+      float hx = landscape(p.xz + vec2(e, 0.0));
+      float hz = landscape(p.xz + vec2(0.0, e));
+      vec3 n = normalize(vec3(h - hx, e, h - hz));
+      return n;
+    }
+
+    // ── Color ramp: loss value -> color ──
+    vec3 lossColor(float h) {
+      // Deep blue (low loss) -> cyan -> green -> violet -> white (high loss)
+      vec3 c1 = vec3(0.02, 0.05, 0.15);   // deep valleys
+      vec3 c2 = vec3(0.0, 0.55, 0.7);     // cyan
+      vec3 c3 = vec3(0.1, 0.85, 0.55);    // mint/green
+      vec3 c4 = vec3(0.5, 0.25, 0.85);    // violet
+      vec3 c5 = vec3(0.9, 0.4, 0.3);      // warm peak
+
+      float t = clamp((h + 1.2) / 2.0, 0.0, 1.0);
+
+      vec3 col;
+      if (t < 0.25) col = mix(c1, c2, t / 0.25);
+      else if (t < 0.5) col = mix(c2, c3, (t - 0.25) / 0.25);
+      else if (t < 0.75) col = mix(c3, c4, (t - 0.5) / 0.25);
+      else col = mix(c4, c5, (t - 0.75) / 0.25);
+
+      return col;
+    }
+
+    // ── Gradient descent trajectory ──
+    // Precomputed path via Euler steps on the landscape
+    vec2 gdStep(vec2 p) {
+      float e = 0.05;
+      float h = landscape(p);
+      float gx = (landscape(p + vec2(e, 0.0)) - h) / e;
+      float gz = (landscape(p + vec2(0.0, e)) - h) / e;
+      return -vec2(gx, gz);
+    }
+
+    float trajectoryGlow(vec2 surfXZ) {
+      float glow = 0.0;
+      vec2 tp = vec2(2.5, 2.0); // start point (high loss)
+      float lr = 0.08;
+
+      // Animate how far along the path we are
+      float progress = mod(uTime * 0.15, 1.0);
+      int maxSteps = 120;
+
+      for (int i = 0; i < 120; i++) {
+        float fi = float(i) / float(maxSteps);
+        if (fi > progress) break;
+
+        vec2 grad = gdStep(tp);
+        tp += lr * grad;
+
+        float d = length(surfXZ - tp);
+        // Trail glow — stronger near head
+        float fade = smoothstep(progress, progress - 0.3, fi);
+        glow += fade * 0.006 / (d * d + 0.003);
+      }
+      return glow;
+    }
+
+    void main() {
+      vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / min(uRes.x, uRes.y);
+
+      // Camera — orbiting slowly
+      float camAngle = uTime * 0.06 + uMouse.x * 1.5;
+      float camPitch = 0.7 + uMouse.y * 0.3;
+      float camDist = 5.5;
+
+      vec3 ro = vec3(
+        camDist * sin(camAngle) * cos(camPitch),
+        2.5 + sin(uTime * 0.08) * 0.3,
+        camDist * cos(camAngle) * cos(camPitch)
+      );
+
+      vec3 target = vec3(0.0, -0.3, 0.0);
+      vec3 fwd = normalize(target - ro);
+      vec3 right = normalize(cross(fwd, vec3(0.0, 1.0, 0.0)));
+      vec3 up = cross(right, fwd);
+
+      vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+      // Raymarch
+      float t = raymarch(ro, rd);
+      vec3 col = vec3(0.01, 0.01, 0.02); // sky
+
+      if (t < MAX_DIST) {
+        vec3 p = ro + rd * t;
+        vec3 n = getNormal(p);
+        float h = landscape(p.xz);
+
+        // Base color from loss value
+        vec3 surfCol = lossColor(h);
+
+        // Lighting
+        vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
+        float diff = max(dot(n, lightDir), 0.0);
+        float ambient = 0.15;
+        float spec = pow(max(dot(reflect(-lightDir, n), normalize(ro - p)), 0.0), 32.0);
+
+        col = surfCol * (ambient + diff * 0.7) + vec3(0.3, 0.5, 0.7) * spec * 0.2;
+
+        // Contour lines
+        float contour = abs(fract(h * 5.0) - 0.5);
+        float contourLine = smoothstep(0.02, 0.06, contour);
+        col *= 0.6 + 0.4 * contourLine;
+
+        // Wireframe grid on surface
+        vec2 grid = abs(fract(p.xz * 1.5) - 0.5);
+        float gridLine = smoothstep(0.0, 0.03, min(grid.x, grid.y));
+        col *= 0.85 + 0.15 * gridLine;
+
+        // Gradient descent trajectory glow
+        float gd = trajectoryGlow(p.xz);
+        col += vec3(0.0, 0.9, 1.0) * gd * 2.0;
+
+        // Glow at minima
+        float minGlow1 = exp(-3.0 * dot(p.xz - vec2(-0.5, -0.3), p.xz - vec2(-0.5, -0.3)));
+        float minGlow2 = exp(-4.0 * dot(p.xz - vec2(1.2, 0.8), p.xz - vec2(1.2, 0.8)));
+        float pulse = 0.7 + 0.3 * sin(uTime * 1.5);
+        col += vec3(0.0, 1.0, 0.5) * minGlow1 * 0.15 * pulse;
+        col += vec3(0.4, 0.2, 1.0) * minGlow2 * 0.1 * pulse;
+
+        // Distance fog
+        float fog = exp(-0.04 * t * t);
+        col = mix(vec3(0.01, 0.01, 0.02), col, fog);
+      }
+
+      // Vignette
+      vec2 vuv = gl_FragCoord.xy / uRes;
+      float vig = 1.0 - smoothstep(0.4, 1.4, length((vuv - 0.5) * 1.5));
+      col *= vig;
+
+      // Tone mapping
+      col = col / (col + 0.8);
+
+      // Subtle grain
+      float grain = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.03;
+      col += grain;
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  function createShader(type, source) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, source);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(s));
+      gl.deleteShader(s);
+      return null;
+    }
+    return s;
+  }
+
+  const vs = createShader(gl.VERTEX_SHADER, vsSource);
+  const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(prog));
+  }
+
+  gl.useProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const aPos = gl.getAttribLocation(prog, 'aPos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+  const uTime = gl.getUniformLocation(prog, 'uTime');
+  const uRes = gl.getUniformLocation(prog, 'uRes');
+  const uMouse = gl.getUniformLocation(prog, 'uMouse');
+
+  let mx = 0.5, my = 0.5;
+  let tmx = 0.5, tmy = 0.5;
+  document.addEventListener('mousemove', (e) => {
+    tmx = e.clientX / window.innerWidth;
+    tmy = 1.0 - e.clientY / window.innerHeight;
+  });
+
+  function render(t) {
+    // Smooth mouse
+    mx += (tmx - mx) * 0.03;
+    my += (tmy - my) * 0.03;
+
+    gl.uniform1f(uTime, t * 0.001);
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.uniform2f(uMouse, mx, my);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+}
+</script>
+
+</body>
+</html>
